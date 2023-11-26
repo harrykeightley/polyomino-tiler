@@ -5,7 +5,7 @@ from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property, reduce
-from itertools import chain, permutations, product, repeat
+from itertools import product, repeat
 from typing import Callable, Iterable, Optional, Set, Tuple, TypeVar
 
 import numpy as np
@@ -207,6 +207,7 @@ def search(
     cost: Callable[[T], int],
     heuristic: Callable[[T], int],
     is_finished: Callable[[T], bool],
+    node_callback: Optional[Callable[[T], None]] = None,
 ):
     def value(node: T) -> Tuple[int, T]:
         return (cost(node) + heuristic(node), node)
@@ -219,8 +220,9 @@ def search(
 
     while not q.empty():
         _, node = q.get()
-        print()
-        print(node)
+        if node_callback:
+            node_callback(node)
+
         if is_finished(node):
             return node
 
@@ -291,9 +293,6 @@ class State:
         )
 
 
-# if action space wasn't valid last time, wont be valid next time
-
-
 def generate_action_space(grid: GridShape, pieces: list[Tetrimino]):
     ROTATED_PIECES = product(pieces, range(4))
 
@@ -305,31 +304,24 @@ def generate_action_space(grid: GridShape, pieces: list[Tetrimino]):
     return result
 
 
-def generate_solution(shape: GridShape, pieces: list[Tetrimino]) -> Optional[State]:
+def generate_solution(
+    shape: GridShape, pieces: list[Tetrimino], verbose=True
+) -> Optional[State]:
     action_space = generate_action_space(shape, pieces)
-    # for piece in action_space:
-    #     print("\n" + str(piece.shape))
     initial = State(shape, [], action_space)
 
     def heuristic(state: State) -> int:
-        return state.grid.count_free_spaces() + state.grid.bounding_free_area()
+        return state.grid.count_free_spaces() + state.grid.bounding_free_area() # type: ignore
 
     def is_finished(state: State) -> bool:
         return state.grid.count_free_spaces() <= shape.count_free_spaces() % 4
 
-    return search(initial, State.neighbours, State.cost, heuristic, is_finished)
+    print_node = lambda state: print(f"\n{state}") if verbose else None
+
+    return search(
+        initial, State.neighbours, State.cost, heuristic, is_finished, print_node
+    )
 
 
-# solution = generate_solution(create_empty_grid((6, 6)), [t.value for t in Tetriminos])
-# print("Found one")
-# print(solution)
-grid = create_empty_grid((3, 2))
-grid.bounding_free_area()
-grid = grid.mask(Tetriminos.O.value)
-grid = grid.mask(Tetriminos.O.value, (0, 2))
-print(grid)
-grid = grid.mask(Tetriminos.I.value.rotate(), (2, 0))
-
-
-def solve(shape: GridShape, pieces: list[Tetrimino]) -> Optional[State]:
+def solve_constraints(shape: GridShape, pieces: list[Tetrimino], verbose=True) -> Optional[State]:
     ...
