@@ -5,3 +5,6 @@ Solver/generator for tetris like puzzles.
 - Generalised to use arbitrary tetriminos, not just the classic tetris blocks.
 - `main.py` has an example of solving for an 8x8 grid.
 
+## CLI Usage
+`python3 main.py --help`
+
